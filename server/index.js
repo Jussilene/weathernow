@@ -1,45 +1,70 @@
 // [server/index.js]
-import express from "express";
-import cors from "cors";
-import fetch from "node-fetch";
-import dotenv from "dotenv";
-dotenv.config();
+const express = require("express");
+// Em Node 18+ já existe fetch global; se preferir, descomente a linha abaixo.
+// const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const app = express();
-app.use(cors());
 
-const API = "https://api.openweathermap.org/data/2.5";
+const PORT = process.env.PORT || 5179;
+const OPENWEATHER_KEY = process.env.OPENWEATHER_KEY;
 
-function buildUrl(path, params) {
-  const url = new URL(API + path);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  url.searchParams.set("appid", process.env.OPENWEATHER_KEY);
-  url.searchParams.set("units", "metric");
-  url.searchParams.set("lang", "pt_br");
-  return url.toString();
+function json(res, data, status = 200) {
+  res.set("Cache-Control", "public, max-age=120"); // 2 min
+  res.status(status).json(data);
 }
 
-app.get("/api/weather/current", async (req, res) => {
+app.get("/", (_req, res) => {
+  res.type("text/plain").send("WeatherNow proxy OK");
+});
+
+// Clima atual: por cidade OU por lat/lon
+app.get("/api/current", async (req, res) => {
   try {
-    const { lat, lon, q } = req.query;
-    const url = buildUrl("/weather", lat && lon ? { lat, lon } : { q });
+    const { city, lat, lon } = req.query;
+
+    let url;
+    if (city) {
+      url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
+        city
+      )}&lang=pt_br&units=metric&appid=${OPENWEATHER_KEY}`;
+    } else if (lat && lon) {
+      url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&lang=pt_br&units=metric&appid=${OPENWEATHER_KEY}`;
+    } else {
+      return json(res, { error: "Informe city ou lat/lon" }, 400);
+    }
+
     const r = await fetch(url);
-    res.status(r.status).json(await r.json());
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+    const data = await r.json();
+    return json(res, data, r.ok ? 200 : r.status);
+  } catch (err) {
+    return json(res, { error: "proxy_current_failed", detail: String(err) }, 500);
   }
 });
 
-app.get("/api/weather/forecast", async (req, res) => {
+// Previsão 5 dias (3h): por cidade OU por lat/lon
+app.get("/api/forecast", async (req, res) => {
   try {
-    const { lat, lon, q } = req.query;
-    const url = buildUrl("/forecast", lat && lon ? { lat, lon } : { q });
+    const { city, lat, lon } = req.query;
+
+    let url;
+    if (city) {
+      url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(
+        city
+      )}&lang=pt_br&units=metric&appid=${OPENWEATHER_KEY}`;
+    } else if (lat && lon) {
+      url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&lang=pt_br&units=metric&appid=${OPENWEATHER_KEY}`;
+    } else {
+      return json(res, { error: "Informe city ou lat/lon" }, 400);
+    }
+
     const r = await fetch(url);
-    res.status(r.status).json(await r.json());
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+    const data = await r.json();
+    return json(res, data, r.ok ? 200 : r.status);
+  } catch (err) {
+    return json(res, { error: "proxy_forecast_failed", detail: String(err) }, 500);
   }
 });
 
-const port = process.env.PORT || 5179;
-app.listen(port, () => console.log("Proxy ON na porta", port));
+app.listen(PORT, () => {
+  console.log("Proxy ON na porta", PORT);
+});
