@@ -1,10 +1,13 @@
 // web/src/lib/api.js
 
+// Base da API: prioridade para variável do Vite, senão cai no Render público
 const BASE =
-  (typeof window !== "undefined" && window.API_BASE) ||
-  (typeof import.meta !== "undefined" &&
-    (import.meta.env?.VITE_API_BASE || import.meta.env?.VITE_PROXY_URL)) ||
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
   "https://weathernow-0ya4.onrender.com";
+
+// Ajuda a depurar agora
+// (veja no Console do navegador se está vindo o valor certo)
+console.log("[WeatherNow] API_BASE =", BASE);
 
 // helper pra montar URL com querystring
 function buildUrl(path, params) {
@@ -17,7 +20,7 @@ function buildUrl(path, params) {
 
 // fetch com erro claro
 async function getJson(url) {
-  const r = await fetch(url, { headers: { "Accept": "application/json" } });
+  const r = await fetch(url, { headers: { Accept: "application/json" } });
   if (!r.ok) {
     const txt = await r.text().catch(() => "");
     throw new Error(`Request failed ${r.status} ${r.statusText} - ${txt}`);
@@ -44,7 +47,7 @@ export async function getByCity(city) {
   return { current, forecast };
 }
 
-/** Clima por coordenadas (lat/lon) — compatível com App.jsx */
+/** Clima por coordenadas (lat/lon) */
 export async function getByCoords(lat, lon) {
   const [current, forecast] = await Promise.all([
     getJson(buildUrl("/api/current", { lat, lon })),
