@@ -1,24 +1,39 @@
 // web/src/lib/api.js
 
-// Base da API: prioridade para variável do Vite, senão cai no Render público
-const BASE =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
-  "https://weathernow-0ya4.onrender.com";
+// 1) Lê a base da API (em build) e garante que fica certinha
+function normalizeBase(input) {
+  // pega do env do Vite (Render Static injeta em build) ou usa fallback
+  let base =
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
+    "https://weathernow-0ya4.onrender.com";
 
-// Ajuda a depurar agora
-// (veja no Console do navegador se está vindo o valor certo)
-console.log("[WeatherNow] API_BASE =", BASE);
+  // se veio algo explícito via argumento, usa (mantém para debug futuro)
+  if (input) base = input;
 
-// helper pra montar URL com querystring
-function buildUrl(path, params) {
-  const url = new URL(path, BASE);
-  Object.entries(params || {}).forEach(([k, v]) => {
+  // remove espaços/quebras nas pontas
+  base = String(base).trim();
+
+  // se esqueceram do protocolo, força https
+  if (!/^https?:\/\//i.test(base)) base = "https://" + base;
+
+  // remove barras finais duplicadas
+  base = base.replace(/\/+$/, "");
+  return base;
+}
+
+const BASE = normalizeBase();
+
+// 2) helper pra montar URL com querystring sem surpresas
+function buildUrl(path, params = {}) {
+  const pathClean = path.startsWith("/") ? path : `/${path}`;
+  const url = new URL(`${BASE}${pathClean}`);
+  Object.entries(params).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
   return url.toString();
 }
 
-// fetch com erro claro
+// 3) fetch com erro claro
 async function getJson(url) {
   const r = await fetch(url, { headers: { Accept: "application/json" } });
   if (!r.ok) {
@@ -28,17 +43,15 @@ async function getJson(url) {
   return r.json();
 }
 
-/** Clima atual por cidade (usa ?city=) */
+// Funções da API
 export async function getCurrent(city) {
   return getJson(buildUrl("/api/current", { city }));
 }
 
-/** Previsão por cidade (usa ?city=) */
 export async function getForecast(city) {
   return getJson(buildUrl("/api/forecast", { city }));
 }
 
-/** Pacote por cidade (current + forecast) */
 export async function getByCity(city) {
   const [current, forecast] = await Promise.all([
     getCurrent(city),
@@ -47,7 +60,6 @@ export async function getByCity(city) {
   return { current, forecast };
 }
 
-/** Clima por coordenadas (lat/lon) */
 export async function getByCoords(lat, lon) {
   const [current, forecast] = await Promise.all([
     getJson(buildUrl("/api/current", { lat, lon })),
@@ -56,5 +68,5 @@ export async function getByCoords(lat, lon) {
   return { current, forecast };
 }
 
-// opcional: exporta a BASE pra debug
+// exporta pra debug
 export const API_BASE = BASE;
