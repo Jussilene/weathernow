@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && workbox generateSW workbox-config.cjs",
-    "preview": "vite preview"
+    "preview": "vite preview --host --strictPort"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -22,3 +22,4 @@
     "workbox-cli": "^7.3.0"
   }
 }
+

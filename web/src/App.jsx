@@ -1,21 +1,20 @@
-// [web/src/App.jsx]
+// web/src/App.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { getByCoords, getByCity } from "./lib/api";
-import { bgFromWeather, toC, kmh } from "./lib/format";
-import { moonPhase, moonLabel } from "./lib/moon";
-import { mapWeatherToTipo } from "./lib/icons";
+import { getByCoords, getByCity } from "./lib/api.js";
+import { bgFromWeather, toC, kmh } from "./lib/format.js";
+import { moonPhase, moonLabel } from "./lib/moon.js";
+import { mapWeatherToTipo } from "./lib/icons.js";
 
-import SearchBar from "./components/SearchBar";
-import CurrentCard from "./components/CurrentCard";
-import DetailsGrid from "./components/DetailsGrid";
-import HourlyChart from "./components/HourlyChart";
-import DailyList from "./components/DailyList";
-import InstallPWA from "./components/InstallPWA";
-import Footer from "./components/Footer";
+import SearchBar from "./components/SearchBar.jsx";
+import CurrentCard from "./components/CurrentCard.jsx";
+import DetailsGrid from "./components/DetailsGrid.jsx";
+import HourlyChart from "./components/HourlyChart.jsx";
+import DailyList from "./components/DailyList.jsx";
+import InstallPWA from "./components/InstallPWA.jsx";
+import Footer from "./components/Footer.jsx";
 
 export default function App() {
   const [data, setData] = useState(null);
-  const [city, setCity] = useState("");
   const [loading, setLoading] = useState(true);
 
   async function loadByGeo() {
@@ -27,8 +26,7 @@ export default function App() {
       const { latitude: lat, longitude: lon } = pos.coords;
       setData(await getByCoords(lat, lon));
     } catch {
-      // fallback caso a permissão seja negada
-      setData(await getByCity("Curitiba,BR"));
+      setData(await getByCity("Curitiba,BR")); // fallback
     } finally {
       setLoading(false);
     }
@@ -36,16 +34,17 @@ export default function App() {
 
   async function search(q) {
     setLoading(true);
-    setCity(q);
-    setData(await getByCity(q));
-    setLoading(false);
+    try {
+      setData(await getByCity(q));
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     loadByGeo();
   }, []);
 
-  // fundo dinâmico (dia/noite + condição)
   const theme = useMemo(() => {
     if (!data?.current?.weather?.[0]) return "bg-day";
     const w = data.current.weather[0];
@@ -67,11 +66,11 @@ export default function App() {
     return <div className="p-6">Não foi possível obter dados.</div>;
   }
 
-  // fase da lua (usa timezone do local para o horário atual)
+  // Fase da lua
   const mp = moonPhase(new Date((data.current.dt + data.current.timezone) * 1000));
   const moonText = moonLabel(mp);
 
-  // define ícone (sol/nuvem/chuva/lua) conforme código + dia/noite
+  // Ícone/tema
   const isNight =
     data.current.dt < data.current.sys.sunrise ||
     data.current.dt > data.current.sys.sunset;
@@ -93,7 +92,7 @@ export default function App() {
         />
 
         <DetailsGrid
-          uv="—" /* OpenWeather free não traz UV; podemos integrar outra API depois */
+          uv="—"
           humidity={`${data.current.main.humidity}%`}
           wind={`${kmh(data.current.wind.speed)} km/h`}
           pressure={`${Math.round(data.current.main.pressure)} hPa`}
