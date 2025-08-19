@@ -1,28 +1,29 @@
-// web/workbox-config.cjs
 module.exports = {
-  globDirectory: 'dist/',
-  globPatterns: ['**/*.{html,js,css,png,svg,webmanifest}'],
-  swDest: 'dist/sw.js',
-  clientsClaim: true,
-  skipWaiting: true,
-
-  // Caches úteis para o app
-  runtimeCaching: [
-    // APIs do seu proxy no Render
-    {
-      urlPattern: /^https:\/\/weathernow-0ya4\.onrender\.com\/api\/.*$/i,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'api-cache',
-        networkTimeoutSeconds: 5,
-        expiration: { maxAgeSeconds: 60 * 60 }, // 1h
-      },
-    },
-    // Imagens (ícones etc.)
-    {
-      urlPattern: ({ request }) => request.destination === 'image',
-      handler: 'StaleWhileRevalidate',
-      options: { cacheName: 'images' },
-    },
+  globDirectory: "dist",
+  globPatterns: [
+    "**/*.{js,css,html,png,svg,ico,webmanifest}",
+    "icons/*"
   ],
+  swDest: "dist/sw.js",
+
+  // SPA fallback (não intercepta /api nem /icons)
+  navigateFallback: "/index.html",
+  navigateFallbackDenylist: [/^\/api\//, /^\/icons\//],
+
+  // Cache de API: funciona no proxy local (porta 4001) e no Render
+  runtimeCaching: [
+    {
+      urlPattern: ({ url }) => {
+        const isLocalPort4001 = url.port === "4001" && url.pathname.startsWith("/api/");
+        const isRender = /weathernow-.*\.onrender\.com$/i.test(url.hostname) && url.pathname.startsWith("/api/");
+        return isLocalPort4001 || isRender;
+      },
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "api-cache",
+        networkTimeoutSeconds: 5,
+        fetchOptions: { mode: "cors" }
+      }
+    }
+  ]
 };
