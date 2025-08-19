@@ -1,0 +1,13 @@
+{
+  "name": "WeatherNow",
+  "short_name": "WeatherNow",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#bfe3ff",
+  "theme_color": "#6ec1ff",
+  "description": "Clima em tempo real com previsão e fases da lua.",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

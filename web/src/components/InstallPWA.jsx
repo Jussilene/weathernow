@@ -1,37 +1,51 @@
-// [web/src/components/InstallPWA.jsx]
+// web/src/components/InstallPWA.jsx
 import React, { useEffect, useState } from "react";
 
 export default function InstallPWA() {
-  const [prompt, setPrompt] = useState(null);
+  const [deferred, setDeferred] = useState(null);
   const [installed, setInstalled] = useState(false);
 
-  useEffect(()=>{
-    const before = e => { e.preventDefault(); setPrompt(e); };
-    window.addEventListener("beforeinstallprompt", before);
-    window.addEventListener("appinstalled", ()=>setInstalled(true));
-    return ()=> window.removeEventListener("beforeinstallprompt", before);
-  },[]);
+  useEffect(() => {
+    const onPrompt = (e) => {
+      e.preventDefault();
+      setDeferred(e);
+    };
+    const onInstalled = () => {
+      setInstalled(true);
+      setDeferred(null);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
 
-  if (installed) return null;
+  if (installed) {
+    return <div className="install-ok">✅ App instalado</div>;
+  }
+
+  if (!deferred) {
+    return (
+      <div className="muted">
+        Para instalar, abra o menu do navegador e escolha <b>“Adicionar à tela inicial”</b>.
+      </div>
+    );
+  }
+
+  const handleInstall = async () => {
+    deferred.prompt();
+    const choice = await deferred.userChoice.catch(() => null);
+    if (choice && choice.outcome === "accepted") {
+      setDeferred(null);
+    }
+  };
 
   return (
-    <div className="glass p-4 flex items-center justify-between">
-      <div>
-        <div className="font-medium">Instalar o app</div>
-        <div className="text-sm text-slate-600">
-          Adicione o WeatherNow à tela inicial do celular ou instale no desktop.
-        </div>
-      </div>
-      <button
-        className="px-4 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-50"
-        disabled={!prompt}
-        onClick={async ()=>{
-          if (!prompt) return;
-          prompt.prompt();
-          await prompt.userChoice;
-          setPrompt(null);
-        }}>
-        Instalar
+    <div className="install">
+      <button className="btn" onClick={handleInstall}>
+        Instalar WeatherNow
       </button>
     </div>
   );
