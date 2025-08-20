@@ -227,11 +227,14 @@ export default function App() {
       <header className="top classic">
         <form className="search classic" onSubmit={doSearch}>
           <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Curitiba"
-            aria-label="Buscar cidade"
-          />
+  value={q}
+  onChange={(e) => setQ(e.target.value)}
+  placeholder="Digite uma cidade, estado ou país"
+  aria-label="Buscar cidade, estado ou país"
+  autoComplete="off"
+  inputMode="search"
+/>
+
           <button className="btn classic" type="submit">Buscar</button>
           <span className="pin-dot" aria-hidden>📍</span>
         </form>
